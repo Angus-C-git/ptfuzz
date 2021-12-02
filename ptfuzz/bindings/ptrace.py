@@ -1,4 +1,4 @@
-from ptrace_requests import *
+from ptfuzz.bindings.ptrace_requests import *
 
 
 def ptrace(request, pid, addr=0, data=0):
@@ -13,6 +13,13 @@ def attach(pid):
     attach to a process
     """
     ptrace(PTRACE_ATTACH, pid)
+
+
+def seize(pid):
+    """
+    seize target process
+    """
+    ptrace(PTRACE_SEIZE, pid)
 
 
 def detach(pid):
@@ -52,7 +59,16 @@ def set_regs(pid, regs):
     ptrace(PTRACE_SETREGS, pid, 0, regs)
 
 
-# quick test
-if __name__ == "__main__":
-    print("[>>] ptrace bindings dev tests")
-    # attach(getpid())
+def write_addr(pid, addr, data):
+    """
+    write data to target process
+    """
+    ptrace(PTRACE_POKEDATA, pid, addr, data)
+
+
+def read_addr(pid, addr):
+    """
+    read data from target process
+    """
+    data = ptrace(PTRACE_PEEKDATA, pid, addr)
+    return data

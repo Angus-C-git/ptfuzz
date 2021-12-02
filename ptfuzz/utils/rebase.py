@@ -6,5 +6,11 @@ from pwn import *
 '''
 
 
-def rebase():
-    pass
+def rebase(pid):
+    """ 
+    Rebase the target binary by reading
+    proc/maps and finding the base address.
+    """
+    maps = open(f'/proc/{pid}/maps').read()
+    base = maps.split('-')[0]
+    return int(base, 16)

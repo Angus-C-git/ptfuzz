@@ -3,18 +3,10 @@ from ptfuzz.bindings import ptrace_requests
 import pytest
 from pwn import process, logging
 
-# disable logging from pwn
+# ::::::::::::::::::::::::: CONFIG :::::::::::::::::::::::::
+
+# disable logging from pwntools
 logging.disable()
-
-'''
-Define tests for the tracer module. This tests
-the underlying C functions and helpers that the
-ptfuzz module relies on for its bindings. 
-
-TODO :: some tests are shakey since we do not
-wait for the ptrace calls (such as attach) to
-complete. Causing some tests to fail occasionally.
-'''
 
 
 def start_tracee():
@@ -24,6 +16,21 @@ def start_tracee():
     tracee = process('./targets/tracee')
     pid = tracee.pid
     return pid
+
+
+'''
+Define tests for the tracer module. This tests
+the underlying C functions and helpers that the
+ptfuzz module relies on for its bindings. 
+
+
+
+TODO :: some tests are shakey since we do not
+wait for the ptrace calls (such as attach) to
+complete. Causing some tests to fail occasionally.
+'''
+
+# ::::::::::::::::::::::::: TESTS :::::::::::::::::::::::::
 
 
 def test_import_tracer():
@@ -42,7 +49,6 @@ def test_ptrace_attach():
         pid,
         0
     )
-    print("[>>] attach result :: ", result)
     assert result == 0
 
 
@@ -65,7 +71,6 @@ def test_ptrace_detach():
         pid,
         0
     )
-    print("[>>] detach result :: ", result)
     assert result == 0
 
 
@@ -88,7 +93,6 @@ def test_ptrace_cont():
         pid,
         0
     )
-    print("[>>] cont result :: ", result)
     assert result == 0
 
     # dont detach -> process has/will exit
@@ -112,7 +116,6 @@ def test_ptrace_syscall():
         pid,
         0
     )
-    print("[>>] syscall result :: ", result)
     assert result == 0
 
     # detach from the process
@@ -143,7 +146,7 @@ def test_ptrace_single_step():
         pid,
         0
     )
-    print("[>>] singlestep result :: ", result)
+
     assert result == 0
 
     # detach from the process
