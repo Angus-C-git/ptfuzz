@@ -1,4 +1,5 @@
 from ptfuzz.bindings.ptrace_requests import *
+from tracer import ptrace_exec
 
 
 def ptrace(request, pid, addr=0, data=0):
@@ -6,6 +7,7 @@ def ptrace(request, pid, addr=0, data=0):
     ptrace wrapper
     """
     result = ptrace_exec(request, pid, addr, data)
+    return result
 
 
 def attach(pid):
@@ -63,7 +65,8 @@ def write_addr(pid, addr, data):
     """
     write data to target process
     """
-    ptrace(PTRACE_POKEDATA, pid, addr, data)
+    result = ptrace(PTRACE_POKEDATA, pid, addr, data)
+    return result
 
 
 def read_addr(pid, addr):

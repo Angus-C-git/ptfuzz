@@ -29,25 +29,37 @@ PyDoc_STRVAR(
 static PyObject *
 ptrace_exec(PyObject *UNUSED(self), PyObject *args)
 {
+    unsigned long result;
     unsigned int request;
     pid_t pid;
-    void *addr = 0;
-    void *data = 0;
+    unsigned long addr = 0;
+    unsigned long data = 0;
+    void *erno = 0;
     int ret;
 
-    if (!PyArg_ParseTuple(args, "iid", &request, &pid, &addr, &data))
+    if (!PyArg_ParseTuple(args, "Ii|LLO", &request, &pid, &addr, &data, &erno))
         return NULL;
 
     ret = ptrace(request, pid, addr, data);
-    // tmp debugging
-    printf("[>>] ptrace ret -> %d\n", ret);
+
     if (ret == -1)
     {
-        PyErr_SetFromErrno(PyExc_OSError);
-        return NULL;
-    }
 
-    return Py_BuildValue("i", ret);
+        if (errno)
+        {
+            PyErr_Format(
+                PyExc_ValueError,
+                "ptrace(request=%u, pid=%i, %p, %p) "
+                "error #%i: %s",
+                request, pid, addr, data,
+                errno, strerror(errno));
+            return NULL;
+        }
+    }
+    if (result)
+        result = ret;
+
+    return PyLong_FromUnsignedLong(result);
 }
 
 /**
@@ -58,7 +70,7 @@ ptrace_exec(PyObject *UNUSED(self), PyObject *args)
 static PyObject *
 health_check(PyObject *self, PyObject *args)
 {
-    printf("[>>] tracer functions are exposed\n");
+    printf("\n[>>] tracer functions are exposed\n");
     return Py_BuildValue("i", 1);
 }
 

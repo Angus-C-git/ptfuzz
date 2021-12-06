@@ -5,16 +5,16 @@ from ptfuzz.bindings import (
 )
 from ptfuzz.utils.functions import get_functions
 from ptfuzz.utils.rebase import rebase
+from ptfuzz.utils.convert import bytes2word
+from pwn import p64
 
+SIGTRAP = 0xcc000000
 
-SIGTRAP = 0xCC
+# INT3
+TRAP_CODE = 0xCC
 
-
-def gen_breakpoint(address, size):
-    """
-    Generate a breakpoint instruction
-    """
-    return bytes([SIGTRAP]) * size
+ADDRESS_MASK_x86 = 0xFFFFFF00
+ADDRESS_MASK_x86_64 = 0xFFFFFFFFFFFFFF00
 
 
 class BreakpointMap:
@@ -24,20 +24,55 @@ class BreakpointMap:
     """
 
     def __init__(self, pid, binary):
-        self.breakpoints = {
-            # breakpoint :
-            # {
-            #    'address' : hex,
-            #    'instruction' : hex,
-            #    'function_name' : string
-            # }
-        }
-
+        # TODO :: populate map
+        # self.map = {
+        #     # breakpoint :
+        #     # {
+        #     #    'address' : hex,
+        #     #    'instruction' : hex,
+        #     #    'function_name' : string
+        #     # }
+        # }
+        # assume 16 bytes for now
+        self.size = 4
         # rebase the process
         self.proc_base = rebase(pid)
         self.pid = pid
         self.binary = binary
         self.func_map = get_functions(binary, self.proc_base)
+
+        # tmp
+        self.breakpoints = get_functions(binary, self.proc_base)
+
+    def read_mem(self, address):
+        """
+        Read memory from the target process using 
+        /proc/{pid}/mem.
+        """
+        try:
+            with open(f"/proc/{self.pid}/mem", "rb") as f:
+                res = f.seek(address)
+                return f.read(self.size)
+        except Exception as e:
+            # ideally fallback to ptrace here, but peektext
+            # is crippled
+            print("[!] Error reading memory:", e)
+            return None
+
+    def gen_breakpoint(self, address, arch='x86_64'):
+        """ 
+        Swap out the last byte of instruction with trap code
+        """
+
+        # extract instruction candidate
+        instruction = bytes2word(self.read_mem(address))
+        print("[>>] set bp", hex(
+            ((instruction & ADDRESS_MASK_x86_64) | TRAP_CODE)))
+
+        if (arch == 'x86'):
+            return ((instruction & ADDRESS_MASK_x86) | TRAP_CODE)
+
+        return ((instruction & ADDRESS_MASK_x86_64) | TRAP_CODE)
 
     def remove(self, breakpoint):
         try:
@@ -49,16 +84,14 @@ class BreakpointMap:
         except KeyError:
             return
 
-    def set_breakpoints(self, pid):
+    def set_breakpoints(self):
         """
-        Set all breakpoints in the target process.
+        Set breakpoints in the target process.
         """
-        for breakpoint in self.breakpoints:
-            ptrace.write_addr(
-                pid,
-                self.breakpoints[breakpoint],
-                gen_breakpoint(
-                    breakpoint,
-                    self.breakpoints[breakpoint]
-                )
+
+        for fname, address in self.breakpoints.items():
+            res = ptrace.write_addr(
+                self.pid,
+                address,
+                self.gen_breakpoint(address)
             )

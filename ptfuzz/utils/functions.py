@@ -1,4 +1,5 @@
 from pwn import ELF, logging
+from struct import pack, unpack
 
 ''' 
 Resolve function names and addresses 
@@ -27,12 +28,12 @@ def get_functions(binary, base):
     from a given binary.
     """
     proc_elf = ELF(binary)
+    proc_elf.address = base
 
     # extract function names and addresses
     func_map = {}
     for name, function in proc_elf.functions.items():
         if name in default_functions:
             continue
-        func_map[name] = (function.address + base)
-
+        func_map[name] = function.address
     return func_map
