@@ -24,7 +24,7 @@ void selected_function(void)
 void simple_syscall(void)
 {
     printf("[>>] simple syscall\n");
-    sleep(1);
+    sleep(5);
 }
 
 void simple_syscall_with_args(int arg1, int arg2)

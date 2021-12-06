@@ -46,8 +46,7 @@ def test_ptrace_attach():
     assert pid != 0
     result = ptrace_exec(
         ptrace_requests.PTRACE_ATTACH,
-        pid,
-        0
+        pid
     )
     assert result == 0
 
@@ -68,8 +67,7 @@ def test_ptrace_detach():
     signal = 0
     result = ptrace_exec(
         ptrace_requests.PTRACE_DETACH,
-        pid,
-        0
+        pid
     )
     assert result == 0
 
@@ -82,16 +80,14 @@ def test_ptrace_cont():
     # attach to the process
     result = ptrace_exec(
         ptrace_requests.PTRACE_ATTACH,
-        pid,
-        0
+        pid
     )
     assert result == 0
 
     # continue the process
     result = ptrace_exec(
         ptrace_requests.PTRACE_CONT,
-        pid,
-        0
+        pid
     )
     assert result == 0
 
@@ -106,23 +102,20 @@ def test_ptrace_syscall():
     # attach to the process
     result = ptrace_exec(
         ptrace_requests.PTRACE_ATTACH,
-        pid,
-        0
+        pid
     )
 
     # call PTRACE_SYSCALL
     result = ptrace_exec(
         ptrace_requests.PTRACE_SYSCALL,
-        pid,
-        0
+        pid
     )
     assert result == 0
 
     # detach from the process
     result = ptrace_exec(
         ptrace_requests.PTRACE_DETACH,
-        pid,
-        0
+        pid
     )
     assert result == 0
 
@@ -135,16 +128,14 @@ def test_ptrace_single_step():
     # attach to the process
     result = ptrace_exec(
         ptrace_requests.PTRACE_ATTACH,
-        pid,
-        0
+        pid
     )
     assert result == 0
 
     # single step the process
     result = ptrace_exec(
         ptrace_requests.PTRACE_SINGLESTEP,
-        pid,
-        0
+        pid
     )
 
     assert result == 0
@@ -152,7 +143,6 @@ def test_ptrace_single_step():
     # detach from the process
     result = ptrace_exec(
         ptrace_requests.PTRACE_DETACH,
-        pid,
-        0
+        pid
     )
     assert result == 0
