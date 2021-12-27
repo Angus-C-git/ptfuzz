@@ -24,7 +24,7 @@ class BreakpointMap:
     """
 
     def __init__(self, pid, binary):
-        # TODO :: populate map
+
         # self.map = {
         #     # breakpoint :
         #     # {
@@ -41,8 +41,14 @@ class BreakpointMap:
         self.binary = binary
         self.func_map = get_functions(binary, self.proc_base)
 
-        # tmp
-        self.breakpoints = get_functions(binary, self.proc_base)
+        self.breakpoints = {}
+        for fname, address in self.func_map.items():
+            # print(f"[>>] {fname} : {hex(address)}")
+            self.breakpoints[self.gen_breakpoint(address)] = {
+                'address': address,
+                'function_name': fname,
+                'triggered': False,
+            }
 
     def read_mem(self, address):
         """
@@ -88,10 +94,10 @@ class BreakpointMap:
         """
         Set breakpoints in the target process.
         """
-
-        for fname, address in self.breakpoints.items():
+        for bp, data in self.breakpoints.items():
             res = ptrace.write_addr(
                 self.pid,
-                address,
-                self.gen_breakpoint(address)
+                data['address'],
+                bp
             )
+            # print(f"[>>] set bp {hex(data['address'])}")
