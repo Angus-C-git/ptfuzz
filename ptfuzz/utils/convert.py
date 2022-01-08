@@ -24,3 +24,4 @@ def bytes2word(_bytes, size=8):
 
     # return unpack("L", _bytes)[0]
     return u32(_bytes)
+    # return u64(_bytes)

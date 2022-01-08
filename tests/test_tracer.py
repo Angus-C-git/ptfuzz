@@ -27,7 +27,7 @@ ptfuzz module relies on for its bindings.
 
 TODO :: some tests are shakey since we do not
 wait for the ptrace calls (such as attach) to
-complete. Causing some tests to fail occasionally.
+complete. Causing some tests to fail occasionally (often).
 '''
 
 # ::::::::::::::::::::::::: TESTS :::::::::::::::::::::::::
@@ -146,3 +146,31 @@ def test_ptrace_single_step():
         pid
     )
     assert result == 0
+
+    # TODO :: remaining ptrace calls
+
+    def test_ptrace_read_data():
+        """ test tracer read data works """
+        pid = start_tracee()
+        assert pid != 0
+
+        # attach to the process
+        result = ptrace_exec(
+            ptrace_requests.PTRACE_ATTACH,
+            pid
+        )
+        assert result == 0
+
+        # read the data
+        result = ptrace_exec(
+            ptrace_requests.PTRACE_PEEKDATA,
+            pid
+        )
+        assert result == 0
+
+        # detach from the process
+        result = ptrace_exec(
+            ptrace_requests.PTRACE_DETACH,
+            pid
+        )
+        assert result == 0

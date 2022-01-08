@@ -21,19 +21,21 @@ class BreakpointMap:
     """
     Create a map of soft breakpoints 
     in the target process given a pid.
+
+    breakpoint_map = {
+        address :
+        {
+           'instruction' : int,
+           'breakpoint' : int,
+           'function_name' : string,
+           'triggered' : bool
+        }
+    }
     """
 
     def __init__(self, pid, binary):
 
-        # self.map = {
-        #     # breakpoint :
-        #     # {
-        #     #    'address' : hex,
-        #     #    'instruction' : hex,
-        #     #    'function_name' : string
-        #     # }
-        # }
-        # assume 16 bytes for now
+        # assume 4 bytes for now
         self.size = 4
         # rebase the process
         self.proc_base = rebase(pid)
@@ -43,18 +45,29 @@ class BreakpointMap:
 
         self.breakpoints = {}
         for fname, address in self.func_map.items():
-            # print(f"[>>] {fname} : {hex(address)}")
-            self.breakpoints[self.gen_breakpoint(address)] = {
-                'address': address,
-                'function_name': fname,
-                'triggered': False,
-            }
+            # retrieve the instruction for address
+            instruction = bytes2word(self.read_mem(address))
+            # print(f"[>>] {fname}:{hex(address)}:{hex(instruction)}")
+
+            # populate breakpoint map, keyed by address
+            self.breakpoints.update(
+                {
+                    address:
+                    {
+                        'instruction': instruction,
+                        'breakpoint': self.gen_breakpoint(address, instruction),
+                        'function_name': fname,
+                        'triggered': False,
+                    }
+                }
+            )
 
     def read_mem(self, address):
         """
         Read memory from the target process using 
         /proc/{pid}/mem.
         """
+
         try:
             with open(f"/proc/{self.pid}/mem", "rb") as f:
                 res = f.seek(address)
@@ -65,15 +78,17 @@ class BreakpointMap:
             print("[!] Error reading memory:", e)
             return None
 
-    def gen_breakpoint(self, address, arch='x86_64'):
+    def gen_breakpoint(self, address, instruction=None, arch='x86_64'):
         """ 
         Swap out the last byte of instruction with trap code
         """
 
-        # extract instruction candidate
-        instruction = bytes2word(self.read_mem(address))
-        print("[>>] set bp", hex(
-            ((instruction & ADDRESS_MASK_x86_64) | TRAP_CODE)))
+        if not instruction:
+            # extract instruction candidate
+            instruction = bytes2word(self.read_mem(address))
+
+        # print(
+        #     f"[>>] set bp {hex(address)}:{hex(((instruction & ADDRESS_MASK_x86_64) | TRAP_CODE))}")
 
         if (arch == 'x86'):
             return ((instruction & ADDRESS_MASK_x86) | TRAP_CODE)
@@ -94,10 +109,17 @@ class BreakpointMap:
         """
         Set breakpoints in the target process.
         """
-        for bp, data in self.breakpoints.items():
+        for address, data in self.breakpoints.items():
             res = ptrace.write_addr(
                 self.pid,
-                data['address'],
-                bp
+                address,
+                data['breakpoint']
             )
             # print(f"[>>] set bp {hex(data['address'])}")
+
+
+''' dev notes:
+
++ TODO -> setup debug logging to replace print statements
+
+'''

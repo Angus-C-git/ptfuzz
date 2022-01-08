@@ -25,8 +25,8 @@ def test_get_breakpoints():
     pid = proc.pid
 
     bp_map = BreakpointMap(pid, TEST_BIN_PATH)
-    # print(f"[>>] function map")
-    # print(bp_map.func_map)
+    print(f"[{'='*20}] breakpoints [{'='*20}]")
+    print(bp_map.breakpoints)
 
     assert len(bp_map.func_map) == 6
     proc.close()
