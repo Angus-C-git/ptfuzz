@@ -11,6 +11,9 @@ from tracer import ptrace_exec
 from ptfuzz.bindings import ptrace_requests
 from ptfuzz.coverage.BreakpointMap import BreakpointMap
 from rich.console import Console
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 TEST_BIN_PATH = 'targets/tracee'
 TEST_BIN_PATH_2 = 'targets/simple'
 IO_BIN = 'targets/natt'
@@ -90,12 +93,10 @@ def test_set_breakpoints():
             print(f"[>>] Hit breakpoint!")
             bp_count += 1
 
-            # continue the process
-            res = ptrace_exec(
-                ptrace_requests.PTRACE_CONT,
-                pid
-            )
-            assert res == 0
+            # re-instantiate the instruction at the halted address and roll back
+            # the instruction pointer
+            bp_map.update()
+
         else:
             print(
                 f"[>>] Something else halted the process {sigNum}, {Signals(sigNum).name}"
@@ -107,7 +108,7 @@ def test_set_breakpoints():
     assert bp_count == BREAKPOINT_TARGET - 5
     # next breakpoint 2/6
 
-    # TODO :: after we hit a breakpoint the instruction pointer should be
+    # NOTE :: after we hit a breakpoint the instruction pointer should be
     # 		  at the breakpoint location, however this instruction
     # 		  is no longer the same as the original instruction / valid
     # 		  and will therefore cause a segfault. To fix this we need to
@@ -116,10 +117,32 @@ def test_set_breakpoints():
     #
     # 		  This requires modifying the breakpoint map to store the original
     # 		  instruction.
+
+    # check that the breakpoints halt the process
+    status = waitpid(pid, 0)
+    print(f"[>>] wait got => {status}")
+    if (WIFSTOPPED(status[1])):
+        sigNum = WSTOPSIG(status[1])
+        assert sigNum == SIGTRAP
+        if (sigNum == SIGTRAP):
+            print(f"[>>] Hit breakpoint!")
+            bp_count += 1
+
+            # re-instantiate the instruction at the halted address and roll back
+            # the instruction pointer
+            bp_map.update()
+
+        else:
+            print(
+                f"[>>] Something else halted the process {sigNum}, {Signals(sigNum).name}"
+            )
+    else:
+        print(f"[>>] Something else occurred, {status[1]}")
+
     proc.close()
 
 
-def test_set_breakpoints_2():
+# def test_set_breakpoints_2():
     """
     Test that we can set breakpoints
     and trap on them

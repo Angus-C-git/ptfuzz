@@ -7,6 +7,9 @@ from ptfuzz.utils.functions import get_functions
 from ptfuzz.utils.rebase import rebase
 from ptfuzz.utils.convert import bytes2word
 from pwn import p64
+from ctypes import addressof
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 SIGTRAP = 0xcc000000
 
@@ -62,6 +65,8 @@ class BreakpointMap:
                 }
             )
 
+        logging.debug(f"[>>] ===== breakpoints ==== \n{self.breakpoints}")
+
     def read_mem(self, address):
         """
         Read memory from the target process using 
@@ -75,7 +80,7 @@ class BreakpointMap:
         except Exception as e:
             # ideally fallback to ptrace here, but peektext
             # is crippled
-            print("[!] Error reading memory:", e)
+            logging.error("[!] Error reading memory:", e)
             return None
 
     def gen_breakpoint(self, address, instruction=None, arch='x86_64'):
@@ -87,8 +92,9 @@ class BreakpointMap:
             # extract instruction candidate
             instruction = bytes2word(self.read_mem(address))
 
-        # print(
-        #     f"[>>] set bp {hex(address)}:{hex(((instruction & ADDRESS_MASK_x86_64) | TRAP_CODE))}")
+        logging.debug(
+            f"[>>] set bp {hex(address)}:{hex(((instruction & ADDRESS_MASK_x86_64) | TRAP_CODE))}"
+        )
 
         if (arch == 'x86'):
             return ((instruction & ADDRESS_MASK_x86) | TRAP_CODE)
@@ -115,7 +121,51 @@ class BreakpointMap:
                 address,
                 data['breakpoint']
             )
-            # print(f"[>>] set bp {hex(data['address'])}")
+            # print(f"[>>] set bp {hex(address)}:{hex(data['breakpoint'])}")
+
+    def update(self):
+        """
+        Restore the breakpoint at the current address with the 
+        instruction stored in the breakpoint map, roll back the 
+        instruction pointer and continue.
+        """
+
+        # read the current address
+        registers = ptrace.get_regs(self.pid)
+        print(f"[>>] current registers state: {registers}")
+        # read the rip register
+        bp_address = registers.rip - 1
+        print(f"[>>] current rip: {hex(bp_address)} -> {bp_address}")
+
+        # update the breakpoint status
+        self.breakpoints[bp_address]['triggered'] = True
+        print(f"[>>] map ref {self.breakpoints[bp_address]}")
+
+        try:
+            ptrace.write_addr(
+                self.pid,
+                bp_address,
+                self.breakpoints[bp_address]['instruction']
+            )
+        except KeyError:
+            return
+
+        # restore the rip register
+        registers.rip = bp_address
+        res = ptrace.set_regs(self.pid, registers)
+
+        print(
+            f"[>>] restore to -> {hex(bp_address)}:{hex(self.breakpoints[bp_address]['instruction'])}")
+
+        # DEBUG
+        modified_registers = ptrace.get_regs(self.pid)
+        print(f"[>>] modified rip: {hex(modified_registers.rip)}")
+        restored_instruction = bytes2word(
+            self.read_mem(modified_registers.rip))
+        print(f"[>>] restored instruction: {hex(restored_instruction)}")
+
+        # continue execution
+        ptrace.cont(self.pid)
 
 
 ''' dev notes:

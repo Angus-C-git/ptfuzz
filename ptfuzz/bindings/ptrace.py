@@ -1,4 +1,6 @@
 from ptfuzz.bindings.ptrace_requests import *
+from ptfuzz.bindings.registers_struct import ptrace_regs
+from ctypes import addressof
 from tracer import ptrace_exec
 
 
@@ -35,7 +37,7 @@ def cont(pid):
     """
     continue a process
     """
-    ptrace(PTRACE_CONT, pid)
+    ptrace(PTRACE_CONT, pid, 1, 0)
 
 
 def watch_syscall(pid):
@@ -49,8 +51,8 @@ def get_regs(pid):
     """
     get registers from target process
     """
-    regs = ptrace(PTRACE_GETREGS, pid)
-    print(regs)
+    regs = ptrace_regs()
+    ptrace(PTRACE_GETREGS, pid, 0, addressof(regs))
     return regs
 
 
@@ -58,7 +60,8 @@ def set_regs(pid, regs):
     """
     set registers in target process
     """
-    ptrace(PTRACE_SETREGS, pid, 0, regs)
+    result = ptrace(PTRACE_SETREGS, pid, 0, addressof(regs))
+    return result
 
 
 def write_addr(pid, addr, data):
