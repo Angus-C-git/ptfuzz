@@ -18,7 +18,8 @@ default_functions = [
     '__do_global_dtors_aux',
     '_start',
     '_init',
-    'sub_1034'
+    'sub_1034',
+    'main'          # test ignoring main
 ]
 
 

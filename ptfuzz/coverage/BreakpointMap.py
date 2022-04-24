@@ -1,3 +1,5 @@
+# tmp import of print
+from rich import print
 from ptfuzz.bindings import (
     ptrace_requests,
     registers_struct,
@@ -121,8 +123,8 @@ class BreakpointMap:
                 address,
                 data['breakpoint']
             )
-            # print(f"[>>] set bp {hex(address)}:{hex(data['breakpoint'])}")
 
+    # >>> TODO: fix instruction ptr restoration
     def update(self):
         """
         Restore the breakpoint at the current address with the 
@@ -130,16 +132,16 @@ class BreakpointMap:
         instruction pointer and continue.
         """
 
-        # read the current address
+        # get the current register state
         registers = ptrace.get_regs(self.pid)
-        print(f"[>>] current registers state: {registers}")
+
         # read the rip register
         bp_address = registers.rip - 1
-        print(f"[>>] current rip: {hex(bp_address)} -> {bp_address}")
+        print(f"[>>] current rip: {' ' * 5} {hex(bp_address)} -> {bp_address}")
 
         # update the breakpoint status
         self.breakpoints[bp_address]['triggered'] = True
-        print(f"[>>] map ref {self.breakpoints[bp_address]}")
+        print(f"[>>] map ref  {' ' * 9} {self.breakpoints[bp_address]}")
 
         try:
             ptrace.write_addr(
@@ -151,18 +153,20 @@ class BreakpointMap:
             return
 
         # restore the rip register
-        registers.rip = bp_address
+        registers.rip = bp_address - 1
         res = ptrace.set_regs(self.pid, registers)
 
         print(
-            f"[>>] restore to -> {hex(bp_address)}:{hex(self.breakpoints[bp_address]['instruction'])}")
+            f"[>>] restore to -> {' ' * 4} {hex(bp_address)}:{hex(self.breakpoints[bp_address]['instruction'])}")
 
-        # DEBUG
+        # ================= DEBUG =================
         modified_registers = ptrace.get_regs(self.pid)
-        print(f"[>>] modified rip: {hex(modified_registers.rip)}")
+        print(f"[>>] modified rip: {' ' * 4} {hex(modified_registers.rip)}")
         restored_instruction = bytes2word(
-            self.read_mem(modified_registers.rip))
-        print(f"[>>] restored instruction: {hex(restored_instruction)}")
+            self.read_mem(modified_registers.rip + 1))
+        print(
+            f"[>>] restored ins: {' ' * 4} {hex(restored_instruction)}")
+        # ========================================
 
         # continue execution
         ptrace.cont(self.pid)
@@ -170,6 +174,5 @@ class BreakpointMap:
 
 ''' dev notes:
 
-+ TODO -> setup debug logging to replace print statements
-
+    + TODO -> Fix breakpoint restoration on SIGTRAP 
 '''

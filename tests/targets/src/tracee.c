@@ -2,13 +2,13 @@
  * @file tracee.c
  * @author Angus C
  * @brief A dummy tracee program to test
- * the ptrace wrapper module, ptfuzz and 
+ * the ptrace wrapper module, ptfuzz and
  * general coverage oprations.
  * @version 0.1
  * @date 2021-11-28
- * 
+ *
  * @copyright Copyright (c) 2021
- * 
+ *
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,7 +24,7 @@ void selected_function(void)
 void simple_syscall(void)
 {
     printf("[>>] simple syscall\n");
-    sleep(5);
+    // sleep(5);
 }
 
 void simple_syscall_with_args(int arg1, int arg2)
@@ -43,8 +43,9 @@ int random_decision(void)
 // things based on random decision
 void print_decision()
 {
+    int decision = random_decision();
 
-    if (random_decision())
+    if (decision)
     {
         printf("[>>] Function coverage 1/2\n");
     }
